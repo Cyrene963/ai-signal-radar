@@ -1,0 +1,8 @@
+Copyright 2021-2026 LXGW (https://github.com/lxgw/LxgwWenKai)
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+
+Full license: https://openfontlicense.org
+Source: https://github.com/lxgw/LxgwWenKai
+
+The bundled file public/fonts/LXGWWenKai-Regular.ttf is used to provide a built-in Chinese reading font for the local UI.
