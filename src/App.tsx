@@ -74,30 +74,63 @@ const fallbackItems: SignalItem[] = [
   },
 ]
 
-function normalizeRadarItems(payload: any): SignalItem[] {
-  const pools = [payload?.items, payload?.ai_items, payload?.top_items, payload?.data]
-  const raw = pools.find(Array.isArray) ?? []
-  return raw.slice(0, 18).map((item: any, index: number) => ({
-    id: item.id ?? item.url ?? `radar-${index}`,
-    title: item.title ?? item.name ?? 'Untitled radar item',
-    title_en: item.title_en ?? null,
-    url: item.url ?? item.link,
-    source: item.source_name ?? item.source ?? item.site_name ?? 'AI News Radar',
-    publishedAt: item.published_at ?? item.publishedAt ?? item.date,
-    summary: item.summary ?? item.description ?? item.ai_reason ?? 'AI News Radar item awaiting source ratcheting.',
-    category: item.category ?? item.ai_label ?? item.label ?? 'ai_general',
-    score: item.ai_score ?? item.score,
-    label: item.ai_label ?? item.label,
-    origin: 'AI News Radar' as const,
-  }))
+type ApiRecord = Record<string, unknown>
+
+function asRecord(value: unknown): ApiRecord {
+  return value && typeof value === 'object' ? (value as ApiRecord) : {}
 }
 
-function normalizeAihotItems(payload: any): SignalItem[] {
-  return (payload?.items ?? []).slice(0, 18).map((item: any) => ({
-    ...item,
-    origin: 'AI HOT' as const,
-    score: 0.9,
-  }))
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function normalizeRadarItems(payload: unknown): SignalItem[] {
+  const record = asRecord(payload)
+  const pools = [record.items, record.ai_items, record.top_items, record.data]
+  const raw = pools.find(Array.isArray) ?? []
+  return raw.slice(0, 18).map((value, index: number) => {
+    const item = asRecord(value)
+    return {
+      id: asString(item.id, asString(item.url, `radar-${index}`)),
+      title: asString(item.title, asString(item.name, 'Untitled radar item')),
+      title_en: asString(item.title_en) || null,
+      url: asString(item.url, asString(item.link)),
+      source: asString(item.source_name, asString(item.source, asString(item.site_name, 'AI News Radar'))),
+      publishedAt: asString(item.published_at, asString(item.publishedAt, asString(item.date))),
+      summary: asString(item.summary, asString(item.description, asString(item.ai_reason, 'AI News Radar item awaiting source ratcheting.'))),
+      category: asString(item.category, asString(item.ai_label, asString(item.label, 'ai_general'))),
+      score: asNumber(item.ai_score) ?? asNumber(item.score),
+      label: asString(item.ai_label, asString(item.label)),
+      origin: 'AI News Radar' as const,
+    }
+  })
+}
+
+function normalizeAihotItems(payload: unknown): SignalItem[] {
+  const record = asRecord(payload)
+  return asArray(record.items).slice(0, 18).map((value, index) => {
+    const item = asRecord(value)
+    return {
+      id: asString(item.id, `aihot-${index}`),
+      title: asString(item.title, 'Untitled AI HOT item'),
+      title_en: asString(item.title_en) || null,
+      url: asString(item.url),
+      source: asString(item.source, 'AI HOT'),
+      publishedAt: asString(item.publishedAt),
+      summary: asString(item.summary, 'No summary supplied. Open the source and ratchet before using as evidence.'),
+      category: asString(item.category, 'ai_general'),
+      origin: 'AI HOT' as const,
+      score: 0.9,
+    }
+  })
 }
 
 function formatTime(value?: string) {
@@ -147,14 +180,14 @@ function App() {
 
       try {
         const [itemsRes, dailyRes] = await Promise.all([fetch(AIHOT_ITEMS), fetch(AIHOT_DAILY)])
-        const itemsJson = await itemsRes.json()
-        const dailyJson = await dailyRes.json()
+        const itemsJson = asRecord(await itemsRes.json())
+        const dailyJson = asRecord(await dailyRes.json())
         loaded.push(...normalizeAihotItems(itemsJson))
         nextHealth.push({
           name: 'AI HOT public API',
           status: itemsRes.ok && dailyRes.ok ? 'verified' : 'partial',
-          detail: `${itemsJson.count ?? loaded.length} selected items; daily sections: ${dailyJson.sections?.length ?? 'unknown'}.`,
-          metric: dailyJson.date ?? 'daily feed',
+          detail: `${asNumber(itemsJson.count) ?? loaded.length} selected items; daily sections: ${asArray(dailyJson.sections).length || 'unknown'}.`,
+          metric: asString(dailyJson.date, 'daily feed'),
         })
       } catch (error) {
         nextHealth.push({
@@ -167,16 +200,16 @@ function App() {
 
       try {
         const [latestRes, statusRes] = await Promise.all([fetch(RADAR_LATEST), fetch(RADAR_STATUS)])
-        const latestJson = await latestRes.json()
-        const statusJson = await statusRes.json()
+        const latestJson = asRecord(await latestRes.json())
+        const statusJson = asRecord(await statusRes.json())
         loaded.push(...normalizeRadarItems(latestJson))
         nextHealth.push({
           name: 'AI News Radar',
           status: latestRes.ok && statusRes.ok ? 'verified' : 'partial',
-          detail: `${latestJson.total_items ?? 'unknown'} AI-filtered items from ${latestJson.total_items_raw ?? 'unknown'} raw; failed sites: ${statusJson.failed_sites?.length ?? 'unknown'}.`,
-          metric: `${latestJson.site_count ?? '?'} sites / ${latestJson.source_count ?? '?'} sources`,
+          detail: `${asNumber(latestJson.total_items) ?? 'unknown'} AI-filtered items from ${asNumber(latestJson.total_items_raw) ?? 'unknown'} raw; failed sites: ${asArray(statusJson.failed_sites).length}.`,
+          metric: `${asNumber(latestJson.site_count) ?? '?'} sites / ${asNumber(latestJson.source_count) ?? '?'} sources`,
         })
-        setLastUpdated(latestJson.generated_at ?? statusJson.generated_at ?? new Date().toISOString())
+        setLastUpdated(asString(latestJson.generated_at, asString(statusJson.generated_at, new Date().toISOString())))
       } catch (error) {
         nextHealth.push({
           name: 'AI News Radar',
