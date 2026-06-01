@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fetch": "node scripts/fetch-radar.mjs",
+    "verify": "node scripts/verify-quality.mjs",
+    "privacy:scan": "node scripts/privacy-scan.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

@@ -31,6 +31,23 @@ npm run build
 npm run dev
 ```
 
+## Daily radar pipeline
+
+This repo includes a deterministic daily collector used by the Hermes cron push workflow:
+
+```bash
+npm run fetch        # fetch verified public endpoints and write data/snapshots/latest.json + reports/latest.md
+npm run verify       # enforce breadth/depth/source-health/report-quality gates
+npm run privacy:scan # scan source/docs/scripts/public assets for secret-shaped leaks
+npm run build
+```
+
+Current quality gates require all four public endpoints to return HTTP 200, broad deduped coverage, visible source-health evidence, a substantial report, and no secret-shaped text in source-controlled surfaces. Aggregator items remain discovery signals until ratcheted to primary sources.
+
+## Telegram briefing policy
+
+Scheduled pushes should combine **News Radar** and **Opportunity Radar** rather than choosing one. A good briefing covers product/model/agent/infra/research/policy/open-source/funding/community signals, then maps them to concrete opportunities such as agent cost governance, local-first demos, AI security, source-quality tooling, and student/JUPAS/open-source leverage. If there is no meaningful digest change and no high-impact signal, the cron job may stay silent.
+
 ## Design notes
 
 - UI/copy should make source quality visible, not hide it behind polished cards.

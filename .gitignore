@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Generated daily radar runtime artifacts
+data/snapshots/
+reports/*.md
+review_artifacts/
+!reports/.gitkeep
