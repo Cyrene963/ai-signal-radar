@@ -173,7 +173,7 @@ const changed = previousHash !== digest
 snapshot.digest = digest
 snapshot.previousDigest = previousHash
 snapshot.changed = changed
-snapshot.highImpactSignals = top.filter(item => !item.discoveryOnly && item.opportunityScore >= 0.92).slice(0, 8).map(item => ({
+snapshot.highImpactSignals = top.filter(item => !item.discoveryOnly && item.opportunityScore >= 0.97).slice(0, 8).map(item => ({
   title: item.title,
   url: item.url,
   source: item.source,
