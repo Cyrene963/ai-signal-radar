@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-06-01T09:18:20.260Z",
+  "claude_opus_4_8": {
+    "route_smoke": "Verified working: OK_ANYROUTER sentinel succeeded",
+    "actual_review": "blocked_external_review",
+    "reason": "full review output was empty; no verdict; not a valid review",
+    "files": [
+      "claude_opus_4_8_blocked_20260601.md",
+      "claude_opus_4_8_review_brief_20260601_170407.md",
+      "claude_opus_4_8_review_brief_20260601_170407_meta.json",
+      "claude_opus_4_8_review_brief_20260601_170407_meta_retry.json",
+      "claude_opus_4_8_review_brief_20260601_170407_raw.md",
+      "claude_opus_4_8_review_brief_20260601_170407_raw.stderr",
+      "claude_opus_4_8_review_brief_20260601_170407_raw_retry.md",
+      "claude_opus_4_8_review_brief_20260601_170407_raw_retry.stderr"
+    ]
+  },
+  "updated_at": "2026-06-01T14:20:06.233170+00:00",
+  "external_review_lanes": {
+    "claude_opus_4_8": {
+      "status": "verified_external_review",
+      "raw_path": "review_artifacts/claude_opus_4_8_actual_review_20260601_215153_raw.md",
+      "meta_path": "review_artifacts/claude_opus_4_8_actual_review_20260601_215153_meta.json",
+      "bytes": 4118,
+      "sha256": "453e7955bbe113d81f98c88d40724d1653c663a29b2e6e771489189c67073ca4",
+      "verdict": "VERDICT: MAJOR_REVISION",
+      "fix_commit": "a0eca8b",
+      "applied_high_value_fixes": [
+        "snapshot-first UI instead of overclaiming browser live fetch",
+        "cross-day latest.hash.json change detection",
+        "normalize full-width punctuation and downrank discovery-only/promotional items",
+        "LXGW WenKai applied to body copy with WOFF2 subset first-load asset"
+      ]
+    }
+  }
+}
