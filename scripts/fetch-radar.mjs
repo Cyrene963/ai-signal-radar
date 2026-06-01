@@ -160,8 +160,6 @@ const snapshot = {
   top,
 }
 const snapshotPath = path.join(dataDir, `${today}.json`)
-await writeFile(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf8')
-await writeFile(path.join(dataDir, 'latest.json'), JSON.stringify(snapshot, null, 2), 'utf8')
 
 const digest = hashText(JSON.stringify(top.map(x => [x.title, x.url, x.summary, x.discoveryOnly]).slice(0, 20)))
 const latestHashPath = path.join(dataDir, 'latest.hash.json')
@@ -171,6 +169,20 @@ await writeFile(path.join(dataDir, `${today}.hash.json`), JSON.stringify({ date:
 await writeFile(`${latestHashPath}.tmp`, JSON.stringify({ date: today, hash: digest, updated_at: snapshot.generated_at }, null, 2), 'utf8')
 await rename(`${latestHashPath}.tmp`, latestHashPath)
 const changed = previousHash !== digest
+
+snapshot.digest = digest
+snapshot.previousDigest = previousHash
+snapshot.changed = changed
+snapshot.highImpactSignals = top.filter(item => !item.discoveryOnly && item.opportunityScore >= 0.92).slice(0, 8).map(item => ({
+  title: item.title,
+  url: item.url,
+  source: item.source,
+  origin: item.origin,
+  opportunityScore: item.opportunityScore,
+  facets: item.facets,
+}))
+await writeFile(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf8')
+await writeFile(path.join(dataDir, 'latest.json'), JSON.stringify(snapshot, null, 2), 'utf8')
 
 const lines = []
 lines.push(`# AI Signal Radar — ${today}`)

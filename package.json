@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch": "node scripts/fetch-radar.mjs",
+    "notify:check": "node scripts/should-notify.mjs",
     "verify": "node scripts/verify-quality.mjs",
+    "should-notify": "node scripts/should-notify.mjs",
     "privacy:scan": "node scripts/privacy-scan.mjs"
   },
   "dependencies": {
