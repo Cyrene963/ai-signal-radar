@@ -155,16 +155,16 @@ function App() {
   const [items, setItems] = useState<SignalItem[]>(fallbackItems)
   const [health, setHealth] = useState<HealthCard[]>([
     {
-      name: 'AI HOT public API',
+      name: 'Daily snapshot',
       status: 'partial',
-      detail: 'Live fetch pending; fallback sample is bundled for offline reading.',
-      metric: 'selected feed',
+      detail: 'Loading bundled cron snapshot first; live browser fetch is optional because third-party CORS can fail.',
+      metric: 'snapshot-first',
     },
     {
-      name: 'AI News Radar',
+      name: 'Public source probes',
       status: 'partial',
-      detail: 'Live fetch pending; static fallback explains the integration contract.',
-      metric: '24h JSON',
+      detail: 'Cron/server verification is the source of truth; browser probes are convenience signals only.',
+      metric: 'verified by npm run fetch',
     },
   ])
   const [selected, setSelected] = useState('all')
@@ -179,22 +179,59 @@ function App() {
       const loaded: SignalItem[] = []
 
       try {
+        const snapshotRes = await fetch('/data/snapshots/latest.json', { cache: 'no-store' })
+        const snapshotJson = asRecord(await snapshotRes.json())
+        const snapshotItems = asArray(snapshotJson.top).map((value, index) => {
+          const item = asRecord(value)
+          return {
+            id: asString(item.id, `snapshot-${index}`),
+            title: asString(item.title, 'Untitled snapshot item'),
+            title_en: asString(item.title_en) || null,
+            url: asString(item.url),
+            source: asString(item.source, 'daily snapshot'),
+            publishedAt: asString(item.publishedAt),
+            summary: asString(item.summary, 'Snapshot item awaiting source ratcheting.'),
+            category: asString(item.category, 'ai_general'),
+            score: asNumber(item.opportunityScore) ?? asNumber(item.score),
+            label: asString(item.discoveryOnly) ? 'discovery-only' : asString(item.label),
+            origin: asString(item.origin) === 'AI HOT' ? 'AI HOT' as const : 'AI News Radar' as const,
+          }
+        })
+        loaded.push(...snapshotItems)
+        const counts = asRecord(snapshotJson.counts)
+        nextHealth.push({
+          name: 'Daily snapshot',
+          status: snapshotItems.length ? 'verified' : 'partial',
+          detail: `${snapshotItems.length} ranked items from ${asNumber(counts.total_after_dedupe) ?? 'unknown'} deduped signals.`,
+          metric: asString(snapshotJson.generated_at, 'latest snapshot'),
+        })
+        setLastUpdated(asString(snapshotJson.generated_at, new Date().toISOString()))
+      } catch (error) {
+        nextHealth.push({
+          name: 'Daily snapshot',
+          status: 'partial',
+          detail: `Bundled snapshot unavailable; falling back to direct browser probes. ${String(error).slice(0, 96)}`,
+          metric: 'fallback active',
+        })
+      }
+
+      try {
         const [itemsRes, dailyRes] = await Promise.all([fetch(AIHOT_ITEMS), fetch(AIHOT_DAILY)])
         const itemsJson = asRecord(await itemsRes.json())
         const dailyJson = asRecord(await dailyRes.json())
-        loaded.push(...normalizeAihotItems(itemsJson))
+        if (!loaded.length) loaded.push(...normalizeAihotItems(itemsJson))
         nextHealth.push({
-          name: 'AI HOT public API',
+          name: 'AI HOT browser probe',
           status: itemsRes.ok && dailyRes.ok ? 'verified' : 'partial',
-          detail: `${asNumber(itemsJson.count) ?? loaded.length} selected items; daily sections: ${asArray(dailyJson.sections).length || 'unknown'}.`,
+          detail: `${asNumber(itemsJson.count) ?? normalizeAihotItems(itemsJson).length} selected items; daily sections: ${asArray(dailyJson.sections).length || 'unknown'}.`,
           metric: asString(dailyJson.date, 'daily feed'),
         })
       } catch (error) {
         nextHealth.push({
-          name: 'AI HOT public API',
+          name: 'AI HOT browser probe',
           status: 'risk',
-          detail: `Browser fetch failed; use server/cron fetch with browser-like User-Agent. ${String(error).slice(0, 96)}`,
-          metric: 'fallback active',
+          detail: `Browser CORS/probe failed; cron snapshot remains the reliable path. ${String(error).slice(0, 96)}`,
+          metric: 'snapshot-first fallback',
         })
       }
 
@@ -202,19 +239,19 @@ function App() {
         const [latestRes, statusRes] = await Promise.all([fetch(RADAR_LATEST), fetch(RADAR_STATUS)])
         const latestJson = asRecord(await latestRes.json())
         const statusJson = asRecord(await statusRes.json())
-        loaded.push(...normalizeRadarItems(latestJson))
+        if (!loaded.length) loaded.push(...normalizeRadarItems(latestJson))
         nextHealth.push({
-          name: 'AI News Radar',
+          name: 'AI News Radar browser probe',
           status: latestRes.ok && statusRes.ok ? 'verified' : 'partial',
           detail: `${asNumber(latestJson.total_items) ?? 'unknown'} AI-filtered items from ${asNumber(latestJson.total_items_raw) ?? 'unknown'} raw; failed sites: ${asArray(statusJson.failed_sites).length}.`,
           metric: `${asNumber(latestJson.site_count) ?? '?'} sites / ${asNumber(latestJson.source_count) ?? '?'} sources`,
         })
-        setLastUpdated(asString(latestJson.generated_at, asString(statusJson.generated_at, new Date().toISOString())))
+        if (!lastUpdated || lastUpdated === 'offline fallback') setLastUpdated(asString(latestJson.generated_at, asString(statusJson.generated_at, new Date().toISOString())))
       } catch (error) {
         nextHealth.push({
-          name: 'AI News Radar',
+          name: 'AI News Radar browser probe',
           status: 'risk',
-          detail: `Live radar fetch failed; fallback remains readable. ${String(error).slice(0, 96)}`,
+          detail: `Live radar fetch failed; snapshot/fallback remains readable. ${String(error).slice(0, 96)}`,
           metric: 'fallback active',
         })
       }
@@ -260,10 +297,10 @@ function App() {
 
           <aside className="glass-card command-card">
             <div className="terminal-dot-row"><span></span><span></span><span></span></div>
-            <code>sources.aihot = public_api()</code>
-            <code>sources.radar = static_json()</code>
+            <code>snapshot = cron_fetch('/data/snapshots/latest.json')</code>
+            <code>browser_probes = optional_cors_checks()</code>
             <code>gate.claims = official_source_ratcheting()</code>
-            <code>review.ui = claude_opus_latest()</code>
+            <code>review.ui = verified_external_review || blocked</code>
             <div className="font-note">LXGW WenKai is bundled for Chinese long-form readability.</div>
           </aside>
         </div>

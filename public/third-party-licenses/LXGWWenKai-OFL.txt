@@ -5,4 +5,4 @@ This Font Software is licensed under the SIL Open Font License, Version 1.1.
 Full license: https://openfontlicense.org
 Source: https://github.com/lxgw/LxgwWenKai
 
-The bundled file public/fonts/LXGWWenKai-Regular.ttf is used to provide a built-in Chinese reading font for the local UI.
+The bundled files `public/fonts/LXGWWenKai-AISignal-subset.woff2` and `public/fonts/LXGWWenKai-Regular.ttf` are used to provide a built-in Chinese reading font for the local UI.
